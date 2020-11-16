@@ -1,0 +1,30 @@
+RewriteEngine On
+
+# Account redirect
+# RewriteCond %{REQUEST_FILENAME} account$
+RewriteCond %{REQUEST_URI} ^/account/(.*)
+RewriteRule account/(.*) account.php?username=$1 [L]
+# RewriteRule ^account?user=(.*)$ 404.php [L]
+# RewriteRule (.*) 404.php [L]
+
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule (.*) $1.php [L]
+
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule (.*) $1.html [L]
+
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME}.php !-f
+# RewriteCond %{REQUEST_FILENAME}.html !-f
+# RewriteRule (.*) $1 [L]
+
+
+# 404 Redirect
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule (.*) 404.php [L]
