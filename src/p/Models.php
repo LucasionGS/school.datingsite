@@ -115,14 +115,24 @@ class User
     global $sql;
     $token = User::generateToken();
 
-    $o = $sql->query("INSERT INTO `users` VALUES 
+    $o = $sql->multi_query("INSERT INTO `users` VALUES 
     (
       NULL,
       \"" . $sql->escape_string($username) . "\",
       \"" . $sql->escape_string($email) . "\",
       \"" . $sql->escape_string($password) . "\",
       \"$token\"
-    )");
+    );
+
+    INSERT INTO `profiles` VALUES 
+    (
+      (SELECT id FROM users ORDER BY id DESC LIMIT 0, 1),
+      \"" . $sql->escape_string($username) . "\",
+      \"" . $sql->escape_string($email) . "\",
+      \"" . $sql->escape_string($password) . "\",
+      \"$token\"
+    );
+    ");
 
     return $o;
   }
@@ -178,7 +188,51 @@ class User
       return User::mapToUser($user);
     }, $users);
   }
+
+  public function getProfile() {
+    
+  }
 }
+
+class Profile
+{
+  public $id = -1;
+  public $fullName = "";
+  public $likedBy = "";
+  public $pfp = "";
+  public $bio = "";
+  public function __construct(
+    int $id,
+    string $fullName,
+    string $likedBy,
+    string $pfp,
+    string $bio
+  ) {
+    $this->id = $id;
+    $this->fullName = $fullName;
+    $this->likedBy = $likedBy;
+    $this->pfp = $pfp;
+    $this->bio = $bio;
+  }
+
+  public static function mapToProfile(array $data)
+  {
+    return new User(
+      $data["id"],
+      $data["fullName"],
+      $data["likedBy"],
+      $data["pfp"],
+      $data["bio"],
+    );
+  }
+
+  public static function getProfile(int $id) {
+    global $sql;
+    $sql->query("SELECT * FROM `profiles` WHERE `id` = $id");
+    // Parse query data to a profile class
+  }
+}
+
 
 class Result
 {
@@ -190,7 +244,7 @@ class Result
     $this->success = $success;
     if ($reason != null) $this->reason = $reason;
     else unset($this->reason);
-    
+
     if ($data != null) $this->data = $data;
     else unset($this->data);
   }

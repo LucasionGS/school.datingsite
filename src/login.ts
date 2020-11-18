@@ -26,35 +26,21 @@ function login() {
   let user = document.querySelector<HTMLInputElement>("#userInput").value;
   let pass = document.querySelector<HTMLInputElement>("#passwordInput").value;
 
-  var formdata = new FormData();
-  formdata.append("username", user);
-  formdata.append("password", pass);
+  User.authorize(user, pass).then(result => {
+    console.log(result);
+    if (result.success) {
+      let user = result.data;
 
-  var requestOptions = {
-    method: 'POST',
-    body: formdata
-  };
-
-  fetch("/src/authorize.php", requestOptions)
-    .then(response => response.json())
-    .then((result: Result<UserSQL>) => {
-      if (result.success) {
-        console.log(result);
-        let user = User.mapToUser(result.data);
-
-        setFeedback(result.reason, "green", "notice");
-        user.setAsCurrentUser();
-        let params = new URLSearchParams(location.search);
-        if (params.has("ref")) location.href = params.get("ref");
-        else location.href = "/account/" + user.username;
-      }
-      else {
-        setFeedback(result.reason, "red", "error");
-      }
-    })
-    .catch(error => {
-      console.error(error);
-    })
+      setFeedback(result.reason, "green", "notice");
+      user.setAsCurrentUser();
+      let params = new URLSearchParams(location.search);
+      if (params.has("ref")) location.href = params.get("ref");
+      else location.href = "/account/" + user.username;
+    }
+    else {
+      setFeedback(result.reason, "red", "error");
+    }
+  })
 }
 
 function register() {
@@ -76,21 +62,21 @@ function register() {
   };
 
   fetch("/src/register.php", requestOptions)
-    .then(response => response.json())
-    .then((result: Result<UserSQL>) => {
-      if (result.success) {
-        setFeedback(result.reason, "green", "notice");
-        document.querySelector<HTMLInputElement>("#userInput").value = user;
-        document.querySelector<HTMLInputElement>("#passwordInput").value = pass;
-        login();
-        // Should redirect
-      }
-      else {
-        setFeedback(result.reason, "red", "error");
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      setFeedback(error, "red", "error");
-    });
+  .then(response => response.json())
+  .then((result: Result<UserSQL>) => {
+    if (result.success) {
+      setFeedback(result.reason, "green", "notice");
+      document.querySelector<HTMLInputElement>("#userInput").value = user;
+      document.querySelector<HTMLInputElement>("#passwordInput").value = pass;
+      login();
+      // Should redirect
+    }
+    else {
+      setFeedback(result.reason, "red", "error");
+    }
+  })
+  .catch(error => {
+    console.error(error);
+    setFeedback(error, "red", "error");
+  });
 }

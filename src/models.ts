@@ -28,6 +28,45 @@ class User {
     public accessToken: string,
   ) { }
 
+  static async authorize(token: string): Promise<Result<User>>;
+  static async authorize(user: string, pass: string): Promise<Result<User>>;
+  static async authorize(userOrToken: string, pass: string = null): Promise<Result<User>> {
+    var formdata = new FormData();
+    if (pass === null) {
+      formdata.append("token", userOrToken);
+    }
+    else {
+      formdata.append("username", userOrToken);
+      formdata.append("password", pass);
+    }
+
+    var requestOptions = {
+      method: 'POST',
+      body: formdata
+    };
+
+    return fetch("/src/authorize.php", requestOptions)
+      .then(response => response.json())
+      .then((result: Result<UserSQL>) => {
+        if (result.success) {
+          let data: Result<User> = {
+            success: result.success,
+            data: User.mapToUser(result.data),
+            reason: result.reason
+          }
+          return data;
+        }
+        else {
+          let data: Result<User> = {
+            success: result.success,
+            data: null,
+            reason: result.reason
+          }
+          return data;
+        }
+      });
+  }
+
   public static mapToUser(data: UserSQL) {
     return new User(
       data.id,
@@ -60,4 +99,20 @@ class User {
   public static set currentUser(user) {
     User.setCurrentUser(user);
   }
+}
+
+class Profile {
+  constructor(
+    public id: number,
+    /**
+     * The full name of the profile.
+     */
+    public fullName: string,
+    /**
+     * A list of IDs of the users who liked this profile.
+     */
+    public likedBy: number[],
+  ) { }
+
+  
 }

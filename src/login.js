@@ -26,19 +26,10 @@ function login() {
     setFeedback("Logging in...");
     let user = document.querySelector("#userInput").value;
     let pass = document.querySelector("#passwordInput").value;
-    var formdata = new FormData();
-    formdata.append("username", user);
-    formdata.append("password", pass);
-    var requestOptions = {
-        method: 'POST',
-        body: formdata
-    };
-    fetch("/src/authorize.php", requestOptions)
-        .then(response => response.json())
-        .then((result) => {
+    User.authorize(user, pass).then(result => {
+        console.log(result);
         if (result.success) {
-            console.log(result);
-            let user = User.mapToUser(result.data);
+            let user = result.data;
             setFeedback(result.reason, "green", "notice");
             user.setAsCurrentUser();
             let params = new URLSearchParams(location.search);
@@ -50,9 +41,6 @@ function login() {
         else {
             setFeedback(result.reason, "red", "error");
         }
-    })
-        .catch(error => {
-        console.error(error);
     });
 }
 function register() {
