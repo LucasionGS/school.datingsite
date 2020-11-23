@@ -164,9 +164,9 @@ input.fancy {
   border-radius: 4px;
   font-size: 16px;
   padding: 4px;
-  background-color: #1b1b1b;
-  color: white;
-  border-color: white;
+  background-color: var(--backgroundColor);
+  color: var(--textColor);
+  border-color: none;
 }
 
 input.fancy:disabled {
@@ -238,36 +238,6 @@ button:active, button:focus {
   background-color: #009b21;
 }
 
-@keyframes toxen {
-  0% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(0.5);
-  }
-  100% {
-    filter: brightness(1);
-  }
-}
-
-@keyframes slideshow {
-  0% {
-    background-image: url("../img/preview1.png");
-  }
-  25% {
-    background-image: url("../img/preview2.png");
-  }
-  50% {
-    background-image: url("../img/preview3.png");
-  }
-  75% {
-    background-image: url("../img/preview4.png");
-  }
-  100% {
-    background-image: url("../img/preview1.png");
-  }
-}
-
 @media only screen and (max-width: 768px) {
   body {
     flex-direction: column;
@@ -295,13 +265,4 @@ button:active, button:focus {
     position: relative;
     margin-top: 0;
   }
-}
-
-* > a.clip {
-  opacity: 0;
-  font-size: 0px;
-}
-*:hover > a.clip {
-  opacity: 1;
-  font-size: 0.75em;
 }

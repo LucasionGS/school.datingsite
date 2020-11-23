@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="/src/main.css">
   <!-- <script defer async src="/src/models.js" ></script> -->
   <script defer async src="/src/login.js" ></script>
-  <title>Toxen</title>
+  <title>Toxinder | Sign in</title>
 </head>
 <body>
   <?php include("./src/header.php") ?>
