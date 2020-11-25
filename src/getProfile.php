@@ -10,10 +10,14 @@ function getProfile() {
     return new Result(false, "Specify a profile id");
   }
 
-  try {
+  if (is_numeric($id)) {
     $profile = Profile::findById($id);
-  } catch (\Throwable $th) {
-    print_r($th);
+  }
+  else {
+    $ids = array_filter(explode(",", $id), function($id) {
+      return is_numeric($id);
+    });
+    $profile = Profile::findByIds($ids);
   }
 
   if ($profile != null) return new Result(true, null, $profile);

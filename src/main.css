@@ -205,6 +205,11 @@ button:active, button:focus {
   background-color: #009b21;
 }
 
+.infocard {
+  display: flex;
+  /* Do shit here idk */
+}
+
 @media only screen and (max-width: 768px) {
   body {
     flex-direction: column;

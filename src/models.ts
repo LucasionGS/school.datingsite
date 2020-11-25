@@ -5,6 +5,21 @@ interface UserSQL {
   accessToken: string,
 }
 
+interface ProfileSQL {
+  id: number;
+  fullName: string;
+  likedBy: string;
+  pfp: string;
+  bio: string;
+  birthdate: {
+    date: string;
+    timezone: string;
+    timezone_type: number;
+  }
+  height: number;
+  weight: number;
+}
+
 class Result<DataType = any>
 {
   public success: boolean;
@@ -21,6 +36,11 @@ class Result<DataType = any>
 }
 
 class User {
+  private profile: Profile = null;
+  public async getProfile(): Promise<Profile> {
+    if (this.profile instanceof Profile) return this.profile;
+    return (this.profile = await Profile.getProfile(this.id).then(res => res.success ? res.data : null));
+  }
   constructor(
     public id: number,
     public username: string,
@@ -94,11 +114,16 @@ class User {
    * Get or set the current user.
    */
   public static get currentUser(): User {
-    return localStorage.getItem("user") != null ? User.mapToUser(JSON.parse(localStorage.getItem("user"))) : null;
+    if (this. _curUsr instanceof User) {
+      return this. _curUsr;
+    }
+    return (this. _curUsr = (localStorage.getItem("user") != null ? User.mapToUser(JSON.parse(localStorage.getItem("user"))) : null));
   }
   public static set currentUser(user) {
     User.setCurrentUser(user);
   }
+
+  private static _curUsr: User = null;
 }
 
 class Profile {
@@ -112,7 +137,86 @@ class Profile {
      * A list of IDs of the users who liked this profile.
      */
     public likedBy: number[],
+    /**
+     * Name of the profile picture. All profile pictures are stored in /img/pfp/
+     */
+    public pfp: string,
+    public bio: string,
+    public birthdate: Date,
+    public height: number,
+    public weight: number,
   ) { }
 
-  
+  public get age() {
+    return new Date().getFullYear() - this.birthdate.getFullYear();
+  }
+
+  public createInfoCard() {
+    const div = document.createElement("div");
+
+    div.classList.add("infocard");
+    const pfp = document.createElement("img");
+    pfp.src = this.pfp;
+
+    div.appendChild(pfp);
+  }
+
+  public static mapToProfile(data: ProfileSQL) {
+    const likedBy = data.likedBy.split(",").map(i => +i);
+    
+    var t = data.birthdate.date.split(/[- :]/) as unknown as number[];
+    const birthdate = new Date(Date.UTC(t[0], t[1]-1, t[2], t[3], t[4], t[5]));
+
+    return new Profile(
+      data.id,
+      data.fullName,
+      likedBy,
+      "/img/pfp/" + data.pfp,
+      data.bio,
+      birthdate,
+      data.height,
+      data.weight,
+    );
+  }
+
+  public static async getProfile(id: number): Promise<Result<Profile>>;
+  public static async getProfile(ids: number[]): Promise<Result<Profile[]>>;
+  public static async getProfile(id: number | number[]) {
+    var formdata = new FormData();
+    var requestOptions = {
+      method: 'POST',
+      body: formdata
+    };
+    if (Array.isArray(id)) formdata.append("id", id.join(","));
+    else formdata.append("id", id.toString());
+
+    return fetch("/src/getProfile.php", requestOptions)
+      .then(response => response.json())
+      .then((result: Result<ProfileSQL | ProfileSQL[]>) => {
+        if (result.success) {
+          let res: Profile | Profile[];
+          if (Array.isArray(result.data)) {
+            res = result.data.map(data => Profile.mapToProfile(data))
+          }
+          else {
+            res = Profile.mapToProfile(result.data);
+          }
+          let data: Result<Profile | Profile[]> = {
+            success: result.success,
+            data: res,
+            reason: result.reason
+          }
+          return data;
+        }
+        else {
+          let data: Result<Profile> = {
+            success: result.success,
+            data: null,
+            reason: result.reason
+          }
+          return data;
+        }
+      });
+  }
 }
+

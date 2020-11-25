@@ -196,7 +196,7 @@ class Profile
   public $weight = null;
   public function __construct($data) {
     $this->id = (int)$data["id"];
-    $this->fullName = (string)$data["fullName"];
+    $this->fullName = (string)$data["fullname"];
     $this->likedBy = (string)$data["likedBy"];
     $this->pfp = (string)$data["pfp"];
     $this->bio = (string)$data["bio"];
@@ -222,6 +222,24 @@ class Profile
   }
 
   /**
+   * Find multiple profiles by their ids.
+   * @param int[] $id
+   * @return Profile[]
+   */
+  public static function findByIds(array $ids)
+  {
+    global $sql;
+    $conditions = implode(" OR ", array_map(function($id) {
+      return "`id` = $id";
+    }, $ids));
+    $o = $sql->query("SELECT * FROM `profiles` WHERE $conditions");
+    $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
+    return array_map(function($data) {
+      return Profile::mapToProfile($data);
+    }, $profilesFound);
+  }
+
+  /**
    * @return Profile[]
    */
   public static function getAllProfiles()
@@ -239,12 +257,12 @@ class Profile
    */
   public static function searchProfiles(ProfileSearch $search, int $page = 1)
   {
-    global $sql;
-    $o = $sql->query("SELECT * FROM `profiles`");
-    $profiles = $o->fetch_all(MYSQLI_ASSOC);
-    return array_map(function ($profile) {
-      return Profile::mapToProfile($profile);
-    }, $profiles);
+    // global $sql;
+    // $o = $sql->query("SELECT * FROM `profiles` WHERE `fullname` LIKE \"%Lucas%\"");
+    // $profiles = $o->fetch_all(MYSQLI_ASSOC);
+    // return array_map(function ($profile) {
+    //   return Profile::mapToProfile($profile);
+    // }, $profiles);
   }
 }
 
