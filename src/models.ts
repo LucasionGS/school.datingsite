@@ -159,6 +159,8 @@ class Profile {
     pfp.src = this.pfp;
 
     div.appendChild(pfp);
+
+    return div;
   }
 
   public static mapToProfile(data: ProfileSQL) {
@@ -171,7 +173,7 @@ class Profile {
       data.id,
       data.fullName,
       likedBy,
-      "/img/pfp/" + data.pfp,
+      "/img/pfp/" + (data.pfp || "__default.png"),
       data.bio,
       birthdate,
       data.height,
@@ -179,18 +181,21 @@ class Profile {
     );
   }
 
+  public static async getProfile(username: string): Promise<Result<Profile>>;
+  public static async getProfile(usernames: string[]): Promise<Result<Profile[]>>;
   public static async getProfile(id: number): Promise<Result<Profile>>;
   public static async getProfile(ids: number[]): Promise<Result<Profile[]>>;
-  public static async getProfile(id: number | number[]) {
+  public static async getProfile(id: number | string | number[] | string[]) {
     var formdata = new FormData();
     var requestOptions = {
       method: 'POST',
       body: formdata
     };
-    if (Array.isArray(id)) formdata.append("id", id.join(","));
-    else formdata.append("id", id.toString());
+    let key = typeof id == "string" ? "username" : "id"
+    if (Array.isArray(id)) formdata.append(key, id.join(","));
+    else formdata.append(key, id.toString());
 
-    return fetch("/src/getProfile.php", requestOptions)
+    return fetch("/api/getProfile.php", requestOptions)
       .then(response => response.json())
       .then((result: Result<ProfileSQL | ProfileSQL[]>) => {
         if (result.success) {

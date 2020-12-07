@@ -13,4 +13,3 @@
     </a>
   </div>
 </header>
-<!-- <h1 id="title"><a href="/" title="Go to front page">T<img src="/img/toxen.png" alt="o">xen</a></h1> -->

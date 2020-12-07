@@ -132,12 +132,13 @@ class Profile {
         const pfp = document.createElement("img");
         pfp.src = this.pfp;
         div.appendChild(pfp);
+        return div;
     }
     static mapToProfile(data) {
         const likedBy = data.likedBy.split(",").map(i => +i);
         var t = data.birthdate.date.split(/[- :]/);
         const birthdate = new Date(Date.UTC(t[0], t[1] - 1, t[2], t[3], t[4], t[5]));
-        return new Profile(data.id, data.fullName, likedBy, "/img/pfp/" + data.pfp, data.bio, birthdate, data.height, data.weight);
+        return new Profile(data.id, data.fullName, likedBy, "/img/pfp/" + (data.pfp || "__default.png"), data.bio, birthdate, data.height, data.weight);
     }
     static getProfile(id) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -146,11 +147,12 @@ class Profile {
                 method: 'POST',
                 body: formdata
             };
+            let key = typeof id == "string" ? "username" : "id";
             if (Array.isArray(id))
-                formdata.append("id", id.join(","));
+                formdata.append(key, id.join(","));
             else
-                formdata.append("id", id.toString());
-            return fetch("/src/getProfile.php", requestOptions)
+                formdata.append(key, id.toString());
+            return fetch("/api/getProfile.php", requestOptions)
                 .then(response => response.json())
                 .then((result) => {
                 if (result.success) {

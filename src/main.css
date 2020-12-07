@@ -210,6 +210,14 @@ button:active, button:focus {
   /* Do shit here idk */
 }
 
+#profileContent {
+  display: flex;
+}
+
+.profileInfo {
+  flex: 1;
+}
+
 @media only screen and (max-width: 768px) {
   body {
     flex-direction: column;

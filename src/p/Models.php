@@ -194,6 +194,7 @@ class Profile
   public $birthdate = null;
   public $height = null;
   public $weight = null;
+  public $username = null;
   public function __construct($data) {
     $this->id = (int)$data["id"];
     $this->fullName = (string)$data["fullname"];
@@ -203,6 +204,7 @@ class Profile
     $this->birthdate = new DateTime($data["birthdate"]);
     $this->height = (int)$data["height"];
     $this->weight = (int)$data["weight"];
+    $this->username = (string)$data["username"];
   }
 
   public static function mapToProfile(array $data)
@@ -215,10 +217,25 @@ class Profile
    */
   public static function findById(int $id)
   {
-    global $sql;
-    $o = $sql->query("SELECT * FROM `profiles` WHERE `id` = $id LIMIT 0, 1");
-    $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
-    return count($profilesFound) == 1 ? Profile::mapToProfile($profilesFound[0]) : null;
+    // global $sql;
+    // $o = $sql->query("SELECT `profiles`.*, `users`.`username`
+    // FROM `profiles`
+    // LEFT JOIN `users`
+    // ON `profiles`.`id` = `users`.`id`
+    // WHERE `profiles`.`id` = $id LIMIT 0, 1");
+    // $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
+    // return count($profilesFound) == 1 ? Profile::mapToProfile($profilesFound[0]) : null;
+    $profiles = Profile::findByIds([$id]);
+    return isset($profiles[0]) ? $profiles[0] : null;
+  }
+
+  /**
+   * @return Profile
+   */
+  public static function findByUsername(string $username)
+  {
+    $profiles = Profile::findByUsernames([$username]);
+    return isset($profiles[0]) ? $profiles[0] : null;
   }
 
   /**
@@ -230,9 +247,35 @@ class Profile
   {
     global $sql;
     $conditions = implode(" OR ", array_map(function($id) {
-      return "`id` = $id";
+      return "`profiles`.`id` = $id";
     }, $ids));
-    $o = $sql->query("SELECT * FROM `profiles` WHERE $conditions");
+    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
+    FROM `profiles`
+    LEFT JOIN `users`
+    ON `profiles`.`id` = `users`.`id`
+    WHERE $conditions");
+    $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
+    return array_map(function($data) {
+      return Profile::mapToProfile($data);
+    }, $profilesFound);
+  }
+  
+  /**
+   * Find multiple profiles by their usernames.
+   * @param int[] $id
+   * @return Profile[]
+   */
+  public static function findByUsernames(array $usernames)
+  {
+    global $sql;
+    $conditions = implode(" OR ", array_map(function($username) {
+      return "`users`.`username` LIKE '" . str_replace("'", "\\'", $username) ."'";
+    }, $usernames));
+    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
+    FROM `profiles`
+    LEFT JOIN `users`
+    ON `profiles`.`id` = `users`.`id`
+    WHERE $conditions");
     $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
     return array_map(function($data) {
       return Profile::mapToProfile($data);
