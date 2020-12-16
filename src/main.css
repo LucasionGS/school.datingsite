@@ -111,22 +111,6 @@ table.fulltable tr th {
   border: solid white 2px;
 }
 
-#previewslideshow {
-  display: block;
-  margin: auto;
-  width: 75%;
-  height: calc(75vw * 0.5625);
-  animation: slideshow;
-  animation-duration: 20s;
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
-  /* background-attachment: fixed; */
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  /* background-image: url("../img/preview1.png"); */
-}
-
 input.fancy {
   border-radius: 4px;
   font-size: 16px;

@@ -181,4 +181,43 @@ class Profile {
             });
         });
     }
+    static searchProfiles(query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var formdata = new FormData();
+            var requestOptions = {
+                method: 'POST',
+                body: formdata
+            };
+            for (const key in query) {
+                if (Object.prototype.hasOwnProperty.call(query, key)) {
+                    const v = query[key];
+                    if (typeof v != "undefined") {
+                        formdata.append(key, v + "");
+                    }
+                }
+            }
+            return fetch("/api/searchProfiles.php", requestOptions)
+                .then(response => response.json())
+                .then((result) => {
+                if (result.success) {
+                    let res;
+                    res = result.data.map(data => Profile.mapToProfile(data));
+                    let data = {
+                        success: result.success,
+                        data: res,
+                        reason: result.reason
+                    };
+                    return data;
+                }
+                else {
+                    let data = {
+                        success: result.success,
+                        data: null,
+                        reason: result.reason
+                    };
+                    return data;
+                }
+            });
+        });
+    }
 }

@@ -288,7 +288,10 @@ class Profile
   public static function getAllProfiles()
   {
     global $sql;
-    $o = $sql->query("SELECT * FROM `profiles`");
+    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
+    FROM `profiles`
+    LEFT JOIN `users`
+    ON `profiles`.`id` = `users`.`id`");
     $profiles = $o->fetch_all(MYSQLI_ASSOC);
     return array_map(function ($profile) {
       return Profile::mapToProfile($profile);
@@ -300,12 +303,12 @@ class Profile
    */
   public static function searchProfiles(ProfileSearch $search, int $page = 1)
   {
-    // global $sql;
-    // $o = $sql->query("SELECT * FROM `profiles` WHERE `fullname` LIKE \"%Lucas%\"");
-    // $profiles = $o->fetch_all(MYSQLI_ASSOC);
-    // return array_map(function ($profile) {
-    //   return Profile::mapToProfile($profile);
-    // }, $profiles);
+    global $sql;
+    $o = $sql->query($search->generateQuery($page));
+    $profiles = $o->fetch_all(MYSQLI_ASSOC);
+    return array_map(function ($profile) {
+      return Profile::mapToProfile($profile);
+    }, $profiles);
   }
 }
 
@@ -318,20 +321,22 @@ class ProfileSearch {
   public $maxWeight;
   public function __construct($data) {
     // Age is in years
-    $this->minAge = (int)$data["minAge"];
-    $this->maxAge = (int)$data["maxAge"];
+    $this->minAge = isset($data["minAge"]) ? (int)$data["minAge"] : null;
+    $this->maxAge = isset($data["maxAge"]) ? (int)$data["maxAge"] : null;
 
     // Height is in CM measures
-    $this->minHeight = (int)$data["minHeight"];
-    $this->maxHeight = (int)$data["maxHeight"];
+    $this->minHeight = isset($data["minHeight"]) ? (int)$data["minHeight"] : null;
+    $this->maxHeight = isset($data["maxHeight"]) ? (int)$data["maxHeight"] : null;
 
     // Weight is in KG measures
-    $this->minWeight = (int)$data["minWeight"];
-    $this->maxWeight = (int)$data["maxWeight"];
+    $this->minWeight = isset($data["minWeight"]) ? (int)$data["minWeight"] : null;
+    $this->maxWeight = isset($data["maxWeight"]) ? (int)$data["maxWeight"] : null;
   }
 
-  function generateQuery() {
+  function generateQuery($page = -1) {
     $queryItems = [];
+
+    if ($page < -1) $page = -1;
 
     // Weight
     if (isset($this->minWeight)) {
@@ -356,16 +361,21 @@ class ProfileSearch {
     // Age
     if (isset($this->minAge)) {
       $age = $this->minAge;
-      $minAge = date_sub(new DateTime(), date_interval_create_from_date_string("$age years"));
-      array_push($queryItems, "`age` >= $minAge");
+      $minAge = date_sub(new DateTime(), DateInterval::createFromDateString("$age years"))->format("Y-m-d H:i:s");
+      array_push($queryItems, "`birthdate` <= '$minAge'");
     }
     if (isset($this->maxAge)) {
-      $age = $this->maxAge;
-      $maxAge = date_sub(new DateTime(), date_interval_create_from_date_string("$age years"));
-      array_push($queryItems, "`age` <= $maxAge");
+      $age = $this->maxAge + 1;
+      $maxAge = date_sub(new DateTime(), DateInterval::createFromDateString("$age years"))->format("Y-m-d H:i:s");
+      array_push($queryItems, "`birthdate` >= '$maxAge'");
     }
 
-    return implode(" AND ", $queryItems);
+    return "SELECT `profiles`.*, `users`.`username`
+    FROM `profiles`
+    LEFT JOIN `users`
+    ON `profiles`.`id` = `users`.`id`"
+    . (count($queryItems) > 0 ? " WHERE " . implode(" AND ", $queryItems) : "")
+    . ($page > -1 ? " LIMIT " . ($page * 30) . ",30" : "");
   }
 }
 

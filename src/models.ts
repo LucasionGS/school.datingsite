@@ -196,32 +196,78 @@ class Profile {
     else formdata.append(key, id.toString());
 
     return fetch("/api/getProfile.php", requestOptions)
-      .then(response => response.json())
-      .then((result: Result<ProfileSQL | ProfileSQL[]>) => {
-        if (result.success) {
-          let res: Profile | Profile[];
-          if (Array.isArray(result.data)) {
-            res = result.data.map(data => Profile.mapToProfile(data))
-          }
-          else {
-            res = Profile.mapToProfile(result.data);
-          }
-          let data: Result<Profile | Profile[]> = {
-            success: result.success,
-            data: res,
-            reason: result.reason
-          }
-          return data;
+    .then(response => response.json())
+    .then((result: Result<ProfileSQL | ProfileSQL[]>) => {
+      if (result.success) {
+        let res: Profile | Profile[];
+        if (Array.isArray(result.data)) {
+          res = result.data.map(data => Profile.mapToProfile(data))
         }
         else {
-          let data: Result<Profile> = {
-            success: result.success,
-            data: null,
-            reason: result.reason
-          }
-          return data;
+          res = Profile.mapToProfile(result.data);
         }
-      });
+        let data: Result<Profile | Profile[]> = {
+          success: result.success,
+          data: res,
+          reason: result.reason
+        }
+        return data;
+      }
+      else {
+        let data: Result<Profile> = {
+          success: result.success,
+          data: null,
+          reason: result.reason
+        }
+        return data;
+      }
+    });
+  }
+    
+  public static async searchProfiles(query: {
+    minAge?: number;
+    maxAge?: number;
+    minHeight?: number;
+    maxHeight?: number;
+    minWeight?: number;
+    maxWeight?: number;
+  }) {
+    var formdata = new FormData();
+    var requestOptions = {
+      method: 'POST',
+      body: formdata
+    };
+    for (const key in query) {
+      if (Object.prototype.hasOwnProperty.call(query, key)) {
+        const v = (query as any)[key];
+        if (typeof v != "undefined") {
+          formdata.append(key, v + "");
+        }
+      }
+    }
+
+    return fetch("/api/searchProfiles.php", requestOptions)
+    .then(response => response.json())
+    .then((result: Result<ProfileSQL[]>) => {
+      if (result.success) {
+        let res: Profile[];
+        res = result.data.map(data => Profile.mapToProfile(data))
+        let data: Result<Profile[]> = {
+          success: result.success,
+          data: res,
+          reason: result.reason
+        }
+        return data;
+      }
+      else {
+        let data: Result<Profile[]> = {
+          success: result.success,
+          data: null,
+          reason: result.reason
+        }
+        return data;
+      }
+    });
   }
 }
 
