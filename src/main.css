@@ -189,17 +189,20 @@ button:active, button:focus {
   background-color: #009b21;
 }
 
-.infocard {
-  display: flex;
-  /* Do shit here idk */
-}
-
 #profileContent {
   display: flex;
 }
 
-.profileInfo {
+.infocard {
+  display: flex;
   flex: 1;
+  border: solid;
+  /* Do shit here idk */
+}
+
+.profileInfo {
+  flex: 2;
+  border: solid;
 }
 
 @media only screen and (max-width: 768px) {
