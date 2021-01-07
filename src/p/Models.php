@@ -1,4 +1,5 @@
 <?php
+header("Access-Control-Allow-Origin: *");
 $sql = new mysqli("localhost", "root", "", "school_datesite");
 
 class User
@@ -124,7 +125,7 @@ class User
     );
     ");
 
-    return $o;
+    return new Result($o, "", $token);
   }
 
   private static function generateToken()
