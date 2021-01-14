@@ -11,6 +11,6 @@ function searchProfiles() {
   $profiles = Profile::searchProfiles($ps, $page);
 
   if ($profiles != null) return new Result(true, null, $profiles);
-  else return new Result(true, "No profiles found.", $profiles);
+  else return new Result(true, "No profiles found.", []);
 }
 echo json_encode(searchProfiles());

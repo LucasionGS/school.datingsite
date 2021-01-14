@@ -35,10 +35,13 @@ class User
   }
 
   /**
-   * @return Result
+   * @return Result<User>
    */
   public static function loginByToken($token)
   {
+    /**
+     * @var User
+     */
     $user = User::findByToken($token);
     if ($user == null)
       return new Result(false, "The token used isn't valid");
@@ -49,7 +52,7 @@ class User
   public function requestPassword()
   {
     global $sql;
-    $o = $sql->query("SELECT `password` FROM `users` WHERE `id` = " . $this->id);
+    $o = $sql->query("SELECT `password` FROM `users` WHERE `accessToken` = " . "\"$this->accessToken\"");
     $passwords = $o->fetch_all(MYSQLI_ASSOC);
     return isset($passwords[0]) ? $passwords[0]["password"] : null;
   }
@@ -121,7 +124,8 @@ class User
       \"" . $sql->escape_string($username) . "\",
       \"" . $sql->escape_string($email) . "\",
       \"" . $sql->escape_string($password) . "\",
-      \"$token\"
+      \"$token\",
+      0
     );
     ");
 
@@ -139,22 +143,8 @@ class User
       for ($i = 0; $i < 16; $i++) {
         $token .= $tokenSegments[rand(0, $tokenSegmentsLength)];
       }
-    } while (($sql->query("SELECT `accessToken` FROM `users` WHERE `accessToken` = \"$token\""))->num_rows > 0);
+    } while (($sql->query("SELECT `accessToken` FROM `users` WHERE `accessToken` = \"$token\" LIMIT 0,1"))->num_rows > 0);
     return $token;
-  }
-
-  public function updateUser()
-  {
-    global $sql;
-    $sqlUpdateCode = "";
-    foreach ($this as $key => $value) {
-      $sqlUpdateCode .= " `$key`=\"" . $sql->escape_string($value) . "\"";
-    }
-    $q = "UPDATE `users` SET $sqlUpdateCode WHERE `id`=" . $this->id;
-    $o = $sql->query($q);
-
-    return $o;
-    // return $q;
   }
 
   public static function mapToUser(array $data)
@@ -189,20 +179,22 @@ class Profile
 {
   public $id = -1;
   public $fullName = null;
-  public $likedBy = null;
+  public $likes = null;
   public $pfp = null;
   public $bio = null;
   public $birthdate = null;
+  public $country = null;
   public $height = null;
   public $weight = null;
   public $username = null;
   public function __construct($data) {
     $this->id = (int)$data["id"];
-    $this->fullName = (string)$data["fullname"];
-    $this->likedBy = (string)$data["likedBy"];
+    $this->fullName = (string)$data["fullName"];
+    $this->likes = (int)$data["likes"];
     $this->pfp = (string)$data["pfp"];
     $this->bio = (string)$data["bio"];
     $this->birthdate = new DateTime($data["birthdate"]);
+    $this->country = (string)$data["country"];
     $this->height = (int)$data["height"];
     $this->weight = (int)$data["weight"];
     $this->username = (string)$data["username"];
@@ -218,14 +210,6 @@ class Profile
    */
   public static function findById(int $id)
   {
-    // global $sql;
-    // $o = $sql->query("SELECT `profiles`.*, `users`.`username`
-    // FROM `profiles`
-    // LEFT JOIN `users`
-    // ON `profiles`.`id` = `users`.`id`
-    // WHERE `profiles`.`id` = $id LIMIT 0, 1");
-    // $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
-    // return count($profilesFound) == 1 ? Profile::mapToProfile($profilesFound[0]) : null;
     $profiles = Profile::findByIds([$id]);
     return isset($profiles[0]) ? $profiles[0] : null;
   }
@@ -248,13 +232,10 @@ class Profile
   {
     global $sql;
     $conditions = implode(" OR ", array_map(function($id) {
-      return "`profiles`.`id` = $id";
+      return "`id` = '$id'";
     }, $ids));
-    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
-    FROM `profiles`
-    LEFT JOIN `users`
-    ON `profiles`.`id` = `users`.`id`
-    WHERE $conditions");
+    if (count($conditions) == 0) return [];
+    $o = $sql->query("SELECT * FROM `fullprofiles` WHERE $conditions");
     $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
     return array_map(function($data) {
       return Profile::mapToProfile($data);
@@ -269,14 +250,11 @@ class Profile
   public static function findByUsernames(array $usernames)
   {
     global $sql;
-    $conditions = implode(" OR ", array_map(function($username) {
-      return "`users`.`username` LIKE '" . str_replace("'", "\\'", $username) ."'";
+    $conditions = implode(" OR ", array_map(function($username) use ($sql) {
+      return "`username` LIKE '" . $sql->escape_string($username) ."'";
     }, $usernames));
-    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
-    FROM `profiles`
-    LEFT JOIN `users`
-    ON `profiles`.`id` = `users`.`id`
-    WHERE $conditions");
+    if (count($conditions) == 0) return [];
+    $o = $sql->query("SELECT * FROM `fullprofiles` WHERE $conditions");
     $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
     return array_map(function($data) {
       return Profile::mapToProfile($data);
@@ -289,10 +267,7 @@ class Profile
   public static function getAllProfiles()
   {
     global $sql;
-    $o = $sql->query("SELECT `profiles`.*, `users`.`username`
-    FROM `profiles`
-    LEFT JOIN `users`
-    ON `profiles`.`id` = `users`.`id`");
+    $o = $sql->query("SELECT * FROM `fullprofiles`");
     $profiles = $o->fetch_all(MYSQLI_ASSOC);
     return array_map(function ($profile) {
       return Profile::mapToProfile($profile);
@@ -310,6 +285,110 @@ class Profile
     return array_map(function ($profile) {
       return Profile::mapToProfile($profile);
     }, $profiles);
+  }
+
+  public function isLikedBy(int $id) {
+    global $sql;
+    $o = $sql->query("SELECT `id` FROM `likes` WHERE `liker` = $id AND `liked` = ". $this->id ." LIMIT 0, 1");
+    $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
+    return isset($profilesFound[0]);
+  }
+
+  public function likedBy() {
+    global $sql;
+    $o = $sql->query("SELECT * FROM `fullprofiles` WHERE `id` IN (SELECT `liker` FROM `likes` WHERE `liked` = ". $this->id .")");
+    $profilesFound = $o->fetch_all(MYSQLI_ASSOC);
+    return array_map(function ($profile) {
+      return Profile::mapToProfile($profile);
+    }, $profilesFound);
+  }
+
+  /**
+   * @param int $likerId ID of the user the like request came from.
+   * @param bool $state State of the like. `true` means setting a like, `false` removes it.
+   */
+  public function setLike(int $likerId, bool $state) {
+    global $sql;
+    $liker = Profile::findById($likerId);
+    if (!isset($liker)) return new Result(false, "Profile not found.");
+    
+    $likedAlready = $this->isLikedBy($likerId);
+    if ($state) {
+      if (!$likedAlready) {
+        $success = $sql->query("INSERT INTO `likes` (`liker`, `liked`) VALUES ($liker->id,$this->id)");
+        if ($success) {
+          return new Result(true);
+        }
+        else {
+          return new Result(false, "Unable to INSERT like state");
+        }
+      }
+    }
+    else {
+      if ($likedAlready) {
+        $success = $sql->query("DELETE FROM `likes` WHERE `liker` = $liker->id AND `liked` = ". $this->id ."");
+        if ($success) {
+          return new Result(true);
+        }
+        else {
+          return new Result(false, "Unable to DELETE like state");
+        }
+      }
+    }
+  }
+  
+  public function isMatch(int $profileId) {
+    global $sql;
+    $id1 = $this->id;
+    $id2 = $profileId;
+
+    $o1 = $sql->query("SELECT * FROM `likes` WHERE `liker` = $id1 AND `liked` = $id2 LIMIT 0,1");
+    $o2 = $sql->query("SELECT * FROM `likes` WHERE `liker` = $id2 AND `liked` = $id1 LIMIT 0,1");
+
+    $res1 = $o1->fetch_all(MYSQLI_ASSOC);
+    $res2 = $o2->fetch_all(MYSQLI_ASSOC);
+    
+    if (isset($res1[0]) && isset($res2[0])) return true;
+    else return false;
+  }
+
+  public function updateProfile()
+  {
+    global $sql;
+    $sqlUpdateCode = "";
+    foreach ($this as $key => $value) {
+      switch ($key) {
+        // Strings
+        case "fullName":
+        case "pfp":
+        case "bio":
+        case "country":
+          $sqlUpdateCode .= " `$key`=\"" . $sql->escape_string($value) . "\",";
+          break;
+        // Numbers
+        case "height":
+        case "likes":
+        case "weight":
+          $sqlUpdateCode .= " `$key`=" . $sql->escape_string($value) . ",";
+          break;
+              
+        case "birthdate":
+          if (is_string($value))
+            $sqlUpdateCode .= " `$key`=\"" . $value . "\",";
+          else
+            $sqlUpdateCode .= " `$key`=\"" . $sql->escape_string($value->format("Y-m-d")) . "\",";
+          break;
+      }
+    }
+    $sqlUpdateCode = trim($sqlUpdateCode, ",");
+    $q = "UPDATE `profiles` SET $sqlUpdateCode WHERE `id`=" . $this->id;
+    $o = $sql->query($q);
+    if ($o) {
+      return new Result(true);
+    }
+    else {
+      return new Result(false, "Unable to update profile.");
+    }
   }
 }
 
@@ -371,10 +450,7 @@ class ProfileSearch {
       array_push($queryItems, "`birthdate` >= '$maxAge'");
     }
 
-    return "SELECT `profiles`.*, `users`.`username`
-    FROM `profiles`
-    LEFT JOIN `users`
-    ON `profiles`.`id` = `users`.`id`"
+    return "SELECT * FROM `fullprofiles`"
     . (count($queryItems) > 0 ? " WHERE " . implode(" AND ", $queryItems) : "")
     . ($page > -1 ? " LIMIT " . ($page * 30) . ",30" : "");
   }
@@ -385,13 +461,13 @@ class Result
   public $success;
   public $reason;
   public $data;
-  public function __construct(bool $success, $reason = null, $data = null)
+  public function __construct(bool $success, string $reason = null, $data = null)
   {
     $this->success = $success;
-    if ($reason != null) $this->reason = $reason;
+    if ($reason !== null) $this->reason = $reason;
     else unset($this->reason);
 
-    if ($data != null) $this->data = $data;
+    if ($data !== null || is_array($data)) $this->data = $data;
     else unset($this->data);
   }
 }
